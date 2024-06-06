@@ -1,0 +1,9 @@
+flask == 3.0.0
+pywebview == 4.4.1
+pythonnet == 3.0.0a2
+clr-loader == 0.1.7
+flask_socketio == 5.3.6
+eventlet == 0.34.2
+
+pyautogui == 0.9.54
+pynput  == 1.7.6

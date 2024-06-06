@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>demo</title>
+</head>
+
+<body>
+<div id="app" style="width:100%">
+    <div style="margin-left: 1vw;margin-right: 1vw;margin-top:1vw;">
+        <template>
+            <div class='time'></div>
+            <el-tabs v-model="activeName">
+                <el-tab-pane label="鼠标连点" name="first">
+                    <el-radio v-model="mouse.mouse_type" :label="1" @input="update_mouse_type">鼠标左键</el-radio>
+                    <el-radio v-model="mouse.mouse_type" :label="2" @input="update_mouse_type">鼠标右键</el-radio>
+                </el-tab-pane>
+{#                <el-tab-pane label="键盘连点" name="second">键盘</el-tab-pane>#}
+                <el-tab-pane label="设置" name="second1">
+                    <el-collapse v-model="activeNames" accordion>
+{#                        <el-collapse-item title="定位设置" name="1">#}
+                        <el-collapse-item title="定位设置" name="1">
+                            <template slot="title">
+                                定位设置(当前x轴值:{{ mouse.x }}，当前y轴值:{{ mouse.y }}<i class="header-icon el-icon-info"></i>
+                            </template>
+                            <el-row :gutter="20" style="display: flex;margin-top: 5vw;">
+                                <el-col :span="6">
+                                    <el-tooltip class="item" effect="dark" content="这是x轴" placement="top">
+                                        <el-input v-model="mouse.x" placeholder="x"></el-input>
+                                    </el-tooltip>
+                                </el-col>
+                                <el-col :span="6">
+                                    <el-tooltip class="item" effect="dark" content="这是y轴" placement="top">
+                                        <el-input v-model="mouse.y" placeholder="y"></el-input>
+                                    </el-tooltip>
+                                </el-col>
+                                <el-col :span="6">
+                                    <el-tooltip class="item" effect="dark"
+                                                content="清空鼠标位置设置，鼠标就不会定位到设置的位置"
+                                                placement="top">
+                                        <el-button type="primary" @click="update_mouse_position(null,null)">清空
+                                        </el-button>
+                                    </el-tooltip>
+                                </el-col>
+                                <el-col :span="6">
+                                    <el-tooltip class="item" effect="dark" content="获取鼠标位置默认f3" placement="top">
+                                        <el-button type="primary" @click="get_mouse_position">获取</el-button>
+                                    </el-tooltip>
+                                </el-col>
+                            </el-row>
+                        </el-collapse-item>
+                    </el-collapse>
+                </el-tab-pane>
+            </el-tabs>
+
+
+            <div>
+                <el-form :inline="true" :model="formInline" style="margin-top: 2vw;">
+
+                    <el-row>
+                        <el-col :span="12">
+                            <el-form-item label="点击间隔">
+                                <el-tooltip class="item" effect="dark" content="单位毫秒，1000为1秒" placement="bottom">
+                                    <el-input style="width: 25vw;" v-model.number="mouse.click_time"
+                                              @input="updateMouseProperty(Number($event),'move_time')"
+                                              type="number"
+                                              placeholder="点击间隔"></el-input>
+                                </el-tooltip>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="移动间隔">
+                                <el-tooltip class="item" effect="dark" content="单位毫秒，1000为1秒" placement="bottom">
+                                    <el-input style="width: 25vw;" v-model.number="mouse.move_time"
+                                              @input="updateMouseProperty(Number($event),'click_time')"
+                                              type="number"
+                                              placeholder="移动间隔"></el-input>
+                                </el-tooltip>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+            </div>
+            <div style="position: fixed;bottom: 10px;">
+
+            </div>
+            <el-row v-if="activeName!=='second1'" type="flex" class="row-bg" justify="center" style="margin-top: 2vw;">
+                <el-col :span="8">
+                    <el-tag type='' size="medium" effect="dark">
+                        {{ mouse.keyboard_enabled == 0 ? mouse.start2_key+'启动':mouse.stop2_key+'关闭' }}</el-tag>
+                </el-col>
+                <el-col :span="8">
+                    <el-button type="primary" size="mini" @click="hotKey.dialogVisible = true">
+                        修改热键
+                    </el-button>
+                </el-col>
+                <el-col :span="8">
+                    <el-tooltip class="item" effect="dark" content="可按下'f3'获取当前鼠标位置" placement="top">
+                        <el-button type="primary" size="mini"
+                                   @click="update_mouse_position_enabled">
+                            {{ mouse.keyboard_xy_enabled == 0 ? '开启':'关闭' }}定位连点
+                        </el-button>
+                    </el-tooltip>
+                </el-col>
+            </el-row>
+
+            <el-dialog
+                    title="设置"
+                    :visible.sync="hotKey.dialogVisible"
+                    fullscreen="true"
+{#                    top="1vh"#}
+{#                    bottom="1vh"#}
+                    width="90%">
+                <el-form :inline="true">
+                    <el-row>
+                        <el-col :span="12">
+                            <el-form-item label="启动热键">
+                                <el-select style="width: 20vw;" v-model="mouse.start2_key" filterable
+                                           @change="updateMouseProperty($event,'start2_key')"
+                                           placeholder="请选择启动热键">
+                                    <el-option
+                                            v-for="item in mouse.hotKeyList"
+                                            :key="item"
+                                            :label="item"
+                                            :value="item">
+                                    </el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="停止热键">
+                                <el-select style="width: 20vw;" v-model="mouse.stop2_key" filterable
+                                           @change="updateMouseProperty($event,'stop2_key')"
+                                           placeholder="请选择">
+                                    <el-option
+                                            v-for="item in mouse.hotKeyList"
+                                            :key="item"
+                                            :label="item"
+                                            :value="item"
+                                            :disabled="mouse.hotKeyStatus['disabled_'+item]">
+                                    </el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+                <span slot="footer" class="dialog-footer">
+               <el-button @click="hotKey.dialogVisible = false">取 消</el-button>
+               <el-button type="primary" @click="hotKey.dialogVisible = false">确 定</el-button>
+             </span>
+            </el-dialog>
+        </template>
+    </div>
+</div>
+
+<link rel="stylesheet" type="text/css" href="/static/css/element-ui.css">
+
+<script src="/static/js/vue.js" type="text/javascript"></script>
+<script src="/static/js/element-ui.js"></script>
+<script src="/static/js/axios.js" type="text/javascript"></script>
+<script type="text/javascript" src="/static/js/socket.io.min.4.3.1.js"></script>
+{#<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.min.js"></script>#}
+
+<script>
+    let app = new Vue({
+        el: '#app',
+        name: 'user',
+        filters: {},
+        data() {
+            return {
+                //temp
+                formInline: {
+                    user: '',
+                    region: ''
+                },
+                //热键页面参数
+                hotKey: {
+                    dialogVisible: false,
+                },
+                //socket服务器参数
+                socket: {
+                    message_url: 'http://' + document.domain + ':' + location.port + '/message',
+                    data: null,
+                },
+                mouse: {
+                    keyboard_enabled: 0,// 鼠标是否开启标记 1可开启，0关闭
+                    mouse_type: 1,// 鼠标点击类型标记，1左键，2右键
+                    keyboard_xy_enabled: 0,
+                    move_time: 1001,//移动间隔 单位毫秒
+                    click_time: 1001,//点击间隔 单位毫秒
+                    start1_key: '无',
+                    start2_key: 'f1',
+                    stop1_key: '无',
+                    stop2_key: 'f2',
+                    hotKeyList: [],//按键下拉框数组
+                    hotKeyStatus: {},//按键是否启动对象，用来获取是否存在
+                    x: null,
+                    y: null
+                },
+                activeNames: [],
+                // activeNames: ['1'],
+                activeName: 'first',
+                input: '',
+                headers: {
+                    token: '{[ token ]}',
+                },
+            }
+        },
+        created() {
+            this.socket_connect()
+            this.socket.data.on('message', this.socket_message);
+            this.socket.data.on('disconnect', this.socket_connect);
+            this.initMouseData(true)
+            this.initHotKeyList()
+        },
+        methods: {
+            socket_message(data) {
+                console.log('收到消息：%o', data);
+                // 获取 msg 对象中的所有键
+                if (data.msg !== null && data.msg !== undefined) {
+                    let keysArray = Object.keys(data.msg);
+                    // 循环遍历所有键
+                    for (let key of keysArray) {
+                        this.mouse[key] = data.msg[key]
+                    }
+                }
+            },
+            socket_connect() {
+                this.socket.data = io.connect(this.socket.message_url);
+                console.log('socketConnect！')
+            },
+            initMouseData(flag) {
+                axios.get('/init_mouse_data', {params: {}, headers: this.headers}).then(res => {
+                    if (flag) {
+                        let keysArray = Object.keys(res.data.data);
+                        // 循环遍历所有键
+                        for (let key of keysArray) {
+                            this.mouse[key] = res.data.data[key]
+                        }
+                    }
+                })
+            }
+            , initHotKeyList() {
+                // 初始化 options2 数组
+                // for (let i = 65; i <= 90; i++) {this.mouse.hotKeyList.push(String.fromCharCode(i));}
+                // 初始化 options2 数组，包括小写字母和 F1 到 F12
+                for (let i = 97; i <= 122; i++) {
+                    this.mouse.hotKeyList.push(String.fromCharCode(i));
+                }
+                for (let i = 1; i <= 12; i++) {
+                    this.mouse.hotKeyList.push(`f${i}`);
+                }
+            },
+            test_get() {
+                axios.get('/test_get', {params: {test: this.test}, headers: this.headers}).then(res => {
+                    this.$message({
+                        message: '测试成功！status=' + res.data.status,
+                        type: 'success'
+                    });
+                })
+            }, test_post() {
+                axios.post('/test_post', {test: this.test}, {headers: this.headers}).then(res => {
+                    this.$message({
+                        message: '测试成功！status=' + res.data.status,
+                        type: 'success'
+                    });
+                })
+            }// 更新鼠标位置方法
+            , update_mouse_position(x, y) {
+                axios.post('/update_mouse_position', {x: x, y: y}, {headers: this.headers}).then(res => {
+                    this.mouse.x = res.data.data.x
+                    this.mouse.y = res.data.data.y
+                })
+            }// 获取鼠标当前的位置
+            , get_mouse_position() {
+                axios.post('/get_mouse_position', {}, {headers: this.headers}).then(res => {
+                    this.mouse.x = res.data.data.x
+                    this.mouse.y = res.data.data.y
+                })
+            }// 修改鼠标点击类型
+            , update_mouse_type(mouse_type) {
+                axios.post('/update_mouse_type', {mouse_type: mouse_type}, {headers: this.headers}).then(res => {
+
+                })
+            }// 更新鼠标是否移动位置进行连点
+            , update_mouse_position_enabled() {
+                this.mouse.keyboard_xy_enabled = (this.mouse.keyboard_xy_enabled === 1) ? 0 : 1
+                axios.post('/update_mouse_position_enabled', {enabled: this.mouse.keyboard_xy_enabled}, {headers: this.headers}).then(res => {
+                })
+            }
+            // 原生防抖函数
+            , debounce(func, delay) {
+                console.log('debounce_' + func.name)
+                // 从 sessionStorage 中获取上一次的定时器 ID
+                const lastDebounceTimerId = sessionStorage.getItem("debounce_" + func.name);
+                // 清除上一次的定时器
+                clearTimeout(parseInt(lastDebounceTimerId, 10));
+                // 设置新的定时器
+                this.debounceTimerId = setTimeout(() => {
+                    func();
+                }, delay);
+                // 将当前定时器 ID 存储到 sessionStorage
+                sessionStorage.setItem("debounce_" + func.name, this.debounceTimerId.toString());
+                // 直接使用 setTimeout 的返回值
+                // this.debounce(this.handleSearch, 500);
+            }
+            , debouncedSearch() {
+                this.debounce(() => {
+                    console.log(123);
+                }, 500);
+            }
+            // 检查是否为数字，如果不是，或者超过最大值与最小值则默认进行赋值
+            , updateMouseProperty(value, fieldName) {
+                this.debounce(() => {
+                    // 更新后端保存的时间字段
+                    console.log(typeof value);
+                    console.log(parseInt(value, 10));
+                    axios.post('/update_mouse_property', {
+                        time_value: value,
+                        time_name: fieldName
+                    }, {headers: this.headers}).then(res => {
+                    })
+                }, 500);
+            }
+            , updateHotKey(value, fieldName) {
+                console.log(value)
+            }
+        }
+    })
+
+
+</script>
+<style>
+    .el-select-dropdown__wrap {
+        height: 20vw;
+    }
+
+</style>
+</body>
+</html>

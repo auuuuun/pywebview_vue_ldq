@@ -1,0 +1,7 @@
+build
+dist
+download
+.idea
+.git
+**/*.spec
+**/config.json
